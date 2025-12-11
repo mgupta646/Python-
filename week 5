@@ -1,0 +1,90 @@
+SELECT actor_id, director_id
+FROM ActorDirector
+GROUP BY actor_id, director_id
+HAVING COUNT(*) >= 3;
+__________________________________________
+SELECT 
+    user_id,
+    CONCAT(UPPER(LEFT(name, 1)), LOWER(SUBSTRING(name, 2))) AS name
+FROM Users
+ORDER BY user_id;
+____________________________________________
+SELECT 
+    (SELECT DISTINCT salary
+     FROM Employee
+     ORDER BY salary DESC
+     LIMIT 1 OFFSET 1) AS SecondHighestSalary;
+___________________________________________
+SELECT 
+    p.firstName,
+    p.lastName,
+    a.city,
+    a.state
+FROM Person p
+LEFT JOIN Address a
+ON p.personId = a.personId;
+____________________________________________
+SELECT 
+    p.product_name,
+    SUM(o.unit) AS unit
+FROM Orders o
+JOIN Products p
+    ON o.product_id = p.product_id
+WHERE o.order_date >= '2020-02-01'
+  AND o.order_date <  '2020-03-01'
+GROUP BY p.product_id, p.product_name
+HAVING SUM(o.unit) >= 100;
+__________________________________________-
+SELECT 
+    euni.unique_id,
+    e.name
+FROM Employees e
+LEFT JOIN EmployeeUNI euni
+    ON e.id = euni.id;
+__________________________________________
+WITH first_login AS (
+    SELECT 
+        player_id,
+        MIN(event_date) AS first_date
+    FROM Activity
+    GROUP BY player_id
+),
+next_day_login AS (
+    SELECT 
+        f.player_id
+    FROM first_login f
+    JOIN Activity a
+        ON f.player_id = a.player_id
+       AND a.event_date = DATE_ADD(f.first_date, INTERVAL 1 DAY)
+)
+SELECT 
+    ROUND(
+        (SELECT COUNT(*) FROM next_day_login) 
+        / (SELECT COUNT(*) FROM first_login), 
+        2
+    ) AS fraction;
+_______________________________________________
+SELECT 
+    p.project_id,
+    ROUND(AVG(e.experience_years), 2) AS average_years
+FROM Project p
+JOIN Employee e
+    ON p.employee_id = e.employee_id
+GROUP BY p.project_id;
+______________________________________________
+SELECT 
+    d.name AS Department,
+    e.name AS Employee,
+    e.salary AS Salary
+FROM (
+    SELECT 
+        e.*,
+        DENSE_RANK() OVER (
+            PARTITION BY e.departmentId 
+            ORDER BY e.salary DESC
+        ) AS salary_rank
+    FROM Employee e
+) e
+JOIN Department d
+    ON e.departmentId = d.id
+WHERE e.salary_rank <= 3;
