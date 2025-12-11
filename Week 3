@@ -1,0 +1,85 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load data ----------------------------------------------------
+df = pd.read_csv("yourfile.csv")
+
+# Ensure datetime column is parsed
+df["Date"] = pd.to_datetime(df["Date"])
+df["Day"] = df["Date"].dt.day_name()
+df["Year"] = df["Date"].dt.year
+
+# ---------------------------------------------------------------------
+# 1. Filter for weekdays and plot pedestrian counts by weekday
+# ---------------------------------------------------------------------
+
+weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+df_weekdays = df[df["Day"].isin(weekdays)]
+
+weekday_counts = df_weekdays.groupby("Day")["Brooklyn Bridge"].sum().reindex(weekdays)
+
+plt.figure(figsize=(10,5))
+plt.plot(weekday_counts.index, weekday_counts.values, marker="o")
+plt.title("Pedestrian Counts by Weekday")
+plt.xlabel("Weekday")
+plt.ylabel("Pedestrian Count (Brooklyn Bridge)")
+plt.grid(True)
+plt.show()
+
+# ---------------------------------------------------------------------
+# 2. 2019 pedestrian counts + weather correlation analysis
+# ---------------------------------------------------------------------
+
+df_2019 = df[df["Year"] == 2019].copy()
+
+# Group by weather summary to compare pedestrian activity
+weather_group = df_2019.groupby("Weather Summary")["Brooklyn Bridge"].mean().sort_values()
+
+print("Average Pedestrian Counts in 2019 by Weather:")
+print(weather_group)
+
+# Correlation Matrix (weather numeric features + pedestrian)
+# Keep only numeric columns for correlation
+numeric_cols = df_2019.select_dtypes(include=np.number)
+corr_matrix = numeric_cols.corr()
+
+plt.figure(figsize=(10,8))
+sns.heatmap(corr_matrix, annot=True, cmap="coolwarm")
+plt.title("Correlation Matrix for Weather Features and Pedestrian Counts (2019)")
+plt.show()
+
+# ---------------------------------------------------------------------
+# 3. Create time-of-day category and analyze patterns
+# ---------------------------------------------------------------------
+
+# Ensure we have a time variable
+df["Hour"] = df["Date"].dt.hour
+
+def categorize_time_of_day(hour):
+    if 5 <= hour < 12:
+        return "Morning"
+    elif 12 <= hour < 17:
+        return "Afternoon"
+    elif 17 <= hour < 21:
+        return "Evening"
+    else:
+        return "Night"
+
+df["TimeOfDay"] = df["Hour"].apply(categorize_time_of_day)
+
+# Analyze pedestrian activity by time of day
+tod_counts = df.groupby("TimeOfDay")["Brooklyn Bridge"].mean().reindex(
+    ["Morning", "Afternoon", "Evening", "Night"]
+)
+
+plt.figure(figsize=(8,5))
+sns.barplot(x=tod_counts.index, y=tod_counts.values)
+plt.title("Pedestrian Activity by Time of Day")
+plt.xlabel("Time of Day")
+plt.ylabel("Avg Pedestrian Count (Brooklyn Bridge)")
+plt.show()
+
+print("Average Pedestrian Count by Time of Day:")
+print(tod_counts)
